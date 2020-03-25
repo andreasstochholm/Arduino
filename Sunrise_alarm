@@ -1,0 +1,153 @@
+/*
+ * Sunrise Alarm  v1.0
+ * Key Hardware: Arduino Nano, RTC PCF8523
+ * Arduino IDE: 1.6.9
+ * Libraries:  RTClib Library & Wire Library
+ */
+ 
+//include libraries
+#include <RTClib.h>    // RTC Library
+#include <Wire.h>      // I2C Library
+#include <FastLED.h>   // LED library
+
+
+#define NUM_LEDS 5     // set number of LEDS to Control
+#define DATA_PIN 3
+#define CLOCK_PIN 12
+//#define SWITCHPIN 2    // LED Switch I/P =D2
+//# define BRIGHTNESS i
+
+//define what time to wake up
+#define HOUR 19       // Wake-Up Time (hour)
+#define MINUTE 17     // Wake-Up Time (minutes) //  (24hr clock)
+#define SECOND 25     // Wake-Up Time (seconds) //
+  
+
+//CRGBPalette16 myPal = heatmap_gp;????
+
+#define FADESPEED 200 // LED Fade Speed
+
+RTC_PCF8523 rtc;
+CRGB leds[NUM_LEDS];
+
+bool wake_up_now = false; 
+
+
+void setup()
+{
+  
+  FastLED.addLeds<WS2801, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
+  //pinMode(SWITCHPIN, INPUT);     // D2 as I/P
+  //digitalWrite(SWITCHPIN, HIGH); // Enable Internal Pull-Up Resistor
+  Serial.begin(57600);           // Start Serial Monitor
+  fill_solid(leds, NUM_LEDS, CRGB::Black);  
+  if (!rtc.begin())
+  {
+    Serial.println("Couldn't find RTC"); // Error Message!
+    while (1);  
+  }
+  
+  if (!rtc.initialized())
+  {
+    Serial.println("RTC is NOT running!"); // Error Message!
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Sync RTC with the system clock at the time of compilation
+  }
+
+}
+
+
+void loop()
+{  DateTime now = rtc.now();
+  
+  Serial.print(now.hour(), DEC); // Only For Serial Monitor
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.print(now.second(), DEC);
+    Serial.println();
+
+//  if (digitalRead(SWITCHPIN) == HIGH)
+//  {
+    // Wake-Up Configuration
+    // Turn off the wake up light if LED switch is in OFF position
+    
+    //analogWrite(LEDPIN, 0);
+
+//  }
+  if ((now.second() == SECOND & now.minute() == MINUTE) & (now.hour() == HOUR))
+  {
+    // Wake-Up Now
+    wake_up_now = true;
+  }
+  else
+  {
+    // Pause for one second
+    delay(1000);
+  }
+  // Turn on the wake up light if the LED switch is in ON position
+  if (wake_up_now == true )//& digitalRead(SWITCHPIN) == LOW)
+  {
+
+    for (int i = 0; i < 256; i++)
+    {
+      if(i>190){
+      int r = i;  // Redness is constant 
+      int b = i-189;    // Blue is left out
+      int g = i-100;    //  Green needed to create yellow
+
+      fill_solid(leds, NUM_LEDS, CRGB(g,r,b)); // 
+      FastLED.setBrightness(i);
+      FastLED.show();
+      }
+
+      else if(i>90){
+      int r = i;  // Redness is constant 
+      int b = 0;    // Blue is left out
+      int g = i-89;    //  Green needed to create yellow
+      //int g = (i-89)*2;    //  Green needed to create 
+
+      fill_solid(leds, NUM_LEDS, CRGB(g,r,b)); // 
+      FastLED.setBrightness(i);
+      FastLED.show();
+      }
+
+      else{
+      int r = i;  // Redness is constant 
+      int b = 0;    // Blue is left out
+      int g = 0;    //  Green needed to create yellow
+     //  leds[i] = CRGB(g,r,b);
+      
+      fill_solid(leds, NUM_LEDS, CRGB(g,r,b)); 
+      FastLED.setBrightness(i);
+      FastLED.show();
+      }
+
+      delay(FADESPEED);    
+      
+      if (i >= 254)
+      {  
+        wake_up_now = false;
+       // Now turn the LED off
+       //leds[i] = CRGB::Black;
+       fill_solid(leds, NUM_LEDS, CRGB::Black);  
+       //FastLED.clear();
+       FastLED.show();
+         
+      }
+    }
+  }
+}
+
+//
+//
+//CRGBPalette16 myPal = heatmap_gp;
+///// defining Colorpalette from Red to White
+//   DEFINE_GRADIENT_PALETTE( heatmap_gp ) {
+//  0,     0,  0,  0,   //black
+//128,   255,  0,  0,   //red
+//224,   255,255,  0,   //bright yellow
+//255,   255,255,255 }; //full white 
+//  }
+//
+//uint8_t heatindex = (something from 0-255);
+//leds[i] = ColorFromPalette( myPal, heatindex); // normal palette access
